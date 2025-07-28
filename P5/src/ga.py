@@ -140,7 +140,7 @@ class Individual_Grid(object):
                 # STUDENT Which one should you take?  Self, or other?  Why?
                 # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
                 if random.random() < 0.5:
-                    new_tile = self.genome[y][x]
+                    new_genome[y][x] = self.genome[y][x]
                 else: 
                     new_genome[y][x] = other.genome[y][x]
                 # pass
@@ -399,8 +399,8 @@ class Individual_DE(object):
         return Individual_DE(g)
 
 
-# Individual = Individual_Grid
-Individual = Individual_DE
+Individual = Individual_Grid
+#Individual = Individual_DE
 
 
 def generate_successors(population):
