@@ -393,7 +393,12 @@ class Individual_DE(object):
         return Individual_DE(g)
 
 
+<<<<<<< Updated upstream
 Individual = Individual_Grid
+=======
+#Individual = Individual_Grid
+Individual = Individual_DE
+>>>>>>> Stashed changes
 
 
 def generate_successors(population):
