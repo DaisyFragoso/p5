@@ -54,6 +54,56 @@ class Individual_Grid(object):
         )
         self._fitness = sum(map(lambda m: coefficients[m] * measurements[m],
                                 coefficients))
+        level = self.to_level()
+        stair_count = 0
+        powerup_positions = [] #to store where all the powerups are
+        block_positions = [] #to store where all the regular blocks are
+        penalties = 0
+        for y in range(height):
+            for x in range(width):
+                tile = level[y][x]
+                if tile in ["?", "M", "o"]:
+                    powerup_positions.append((x,y)) #store that this tile is a powerup
+                
+                powerup_positions.sort() #sort so that we can see if powerups are next to each other
+                for i in range(len(powerup_positions) -1):
+                    x1, _ = powerup_positions[i] 
+                    x2, _ = powerup_positions[i+1]
+                    if abs(x1-x2) <= 2:
+                        penalties -= 1
+
+                
+        #         if tile in ["X", "B"]:
+        #             block_positions.append((x,y))
+                
+                #ground should only have X, -, or |
+                if y == height - 1 : 
+                    ground_tiles = ["X", "-", "|"]
+                    if tile not in ground_tiles: 
+                        penalties -=1
+
+                # if tile == "X":
+                #     part_of_stairs = (
+                #         (x > 0 and y + 1 < height and level[y+1][x-1] == "X") or 
+                #         (x+1 < width and y+1 < height and level[y+1][x+1] == "X")
+                #     )
+                    
+                #     if (y < height - 1 ) and ((x+1 < width and x-1 > 0) and (y+1 < height and y-1 > 0) and ((level[y-1][x+1] != "X") or (level[y+1][x-1] != "X"))): #if we are at a height not the ground and not apart of a staircase
+                #         penalties -= 1
+                #find where the pipes are:
+                # if tile == "|":
+                #     if (y+)
+
+                
+
+                # if tile == "X": #checking for stairs
+                #     if (y+1 < height and level[y+1][x] == "X" and ((x+1 < width and level[y][x+1] == "X") or (x-1 >= 0 and level [y][x-1] == "X"))):
+                #         stair_count += 1
+
+                # if stair_count > 6: #penalize if the stairs are taller than 6
+                #     penalties -= 2 
+            
+        self._fitness = self._fitness + penalties         
         return self
 
     # Return the cached fitness value or calculate it as needed.
@@ -232,7 +282,24 @@ class Individual_DE(object):
         # STUDENT For example, too many stairs are unaesthetic.  Let's penalize that
         if len(list(filter(lambda de: de[1] == "6_stairs", self.genome))) > 5:
             penalties -= 2
-        #ideas: penalize floating pipes
+        
+        #dont put blocks next to stairs 
+        stairs = list(filter(lambda de: de[1] == "6_stairs", self.genome))
+        blocks = [de for de in self.genome if de[1] == "4_block"] #look through elements to find the blocks
+        for block in blocks: #loop through all the blocks
+            for stair in stairs: #loop through all the stairs in the level
+                if abs(block[0] - stair[0]) <= 1: #if the x coord for block and stair distance is next to each other
+                       penalties -= 1
+
+        #dont put a power up next to another power up
+        #we check if the element is a qblock, then it checks if it is a power up (de[3] == True), then sorts based on the x coord.
+        qblocks = sorted([de for de in self.genome if de[1] == "5q_block" and de[3]], key = lambda de: de[0])
+        #now that we have them sorted by their x coords, we can see if two q blocks are next to each other
+        for i in range(len(qblocks) -1 ):
+            if abs(qblocks[i][0] - qblocks[i+1][0]) <= 2: #distance between current and next q block
+                penalities -= 2
+
+
         
         # STUDENT If you go for the FI-2POP extra credit, you can put constraint calculation in here too and cache it in a new entry in __slots__.
         self._fitness = sum(map(lambda m: coefficients[m] * measurements[m],
@@ -406,10 +473,7 @@ class Individual_DE(object):
 
 
 Individual = Individual_Grid
-=======
-#Individual = Individual_Grid
-Individual = Individual_DE
->>>>>>> Stashed changes
+# Individual = Individual_DE
 
 
 def generate_successors(population):
@@ -435,10 +499,14 @@ def generate_successors(population):
                 #might have to change the call in case implemented differently
                 #parent1, parent2 = tournament_selection()
                 #create offspring by applying crossover to selected parents
+                # Defensive check: skip crossover if either genome is empty
+                if not getattr(parent1, 'genome', None) or not getattr(parent2, 'genome', None):
+                    continue
                 children = parent1.generate_children(parent2)
                 for child in children:
                     #apply mutation to the offspring
-                    mutated_child = child.mutate(child.genome)
+                    mutated_genome = child.mutate(child.genome)
+                    mutated_child = Individual(mutated_genome)
                     mutated_child.calculate_fitness() #Evaluate the fitness of the offspring.
                     offspring.append(mutated_child)
                     if len(offspring) >= pop_limit - elite_size:
