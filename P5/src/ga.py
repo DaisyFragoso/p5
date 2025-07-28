@@ -67,12 +67,63 @@ class Individual_Grid(object):
         # STUDENT implement a mutation operator, also consider not mutating this individual
         # STUDENT also consider weighting the different tile types so it's not uniformly random
         # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
-
+        #tile types weights:
+        tile_weights = {
+            "-" : 40, #An empty space (weighted high because most common tile and dont want the level cluttered)
+            "X" : 20, #A solid wall
+            "?" : 10, #question mark block with a coin inside
+            "M" : 5, #question mark block with a mushroom inside
+            "B" : 10, #breakable block (if you are a big Mario)
+            "o" : 15, #coin floating in the air
+            "|" : 5, #A vertical pipe segment (the position to the right of this will be overwritten with the other side of the pipe automatically)
+        }
+        mutation_rate = 0.05 #we chose 5% because elitist selection strategy prefers to have small but meaningful mutations
+        max_pipe_height = 3
         left = 1
         right = width - 1
-        for y in range(height):
+        for y in range(height): #we are looping through the grid and deciding which tiles to mutate
             for x in range(left, right):
-                pass
+                #we go line by line, looking through all the x's of each line 
+                #choose a random number, if that number is less than .05 then change the tile (5% of the time we mutate)
+                #change the genome by using randomnly choosing from the tile options, and adhere to the weights
+                if random.random() < mutation_rate: 
+                    allowed_tiles = options.copy() #copy so that we can alter the list
+                    #constraint: ground can only be made up of 'X' or '-'
+                    if y == height - 1 : #ground 
+                        allowed_tiles = ['-', 'X']
+                    #constraint: no floating pipes 
+                    elif (genome[y+1][x] not in ['X', '|']) and (y < height - 1) :
+                        if "|" in allowed_tiles:
+                            allowed_tiles.remove("|")
+                    #constraint: pipes cannot be too tall that mario cant jump over
+                    elif(y < height - max_pipe_height):
+                        if "|" in allowed_tiles:
+                            allowed_tiles.remove("|")
+                    #constraint: done put any power up or coin where its unreachable for mario
+                    if y+1 < height: #if the tile isnt on the ground, so there is possible to be a block below
+                        below = genome[y+1][x]
+                        diag_below_left = genome[y+1][x-1] if x-1  >= 0 else None
+                        diag_below_right = genome[y+1][x+1] if x+1 < width else None
+                        #this will make sure there is a block to jump onto if the power up / coin is high up
+                        options_to_jump_from = ['X', '|', 'T', 'B', '?', 'M']
+                        if below not in options_to_jump_from and diag_below_left not in options_to_jump_from and diag_below_right not in options_to_jump_from:
+                            #no option to jump from
+                            remove_tiles = ['?', 'M', 'o']
+                            for tile in remove_tiles:
+                                if tile in allowed_tiles:
+                                    allowed_tiles.remove(tile)
+                    
+
+                    weighted_tiles = []
+                    for tile in allowed_tiles:
+                        if tile in tile_weights:
+                            weighted_tiles += [tile] * tile_weights[tile]
+                    #this makes a list where each tile is added to the list as many times as their weights
+                    #this means that when random chooses a tile, the tile with a higher weight occurs more in the list,
+                    #which is a higher percentage of time it will be chosen 
+
+                    genome[y][x] = random.choice(weighted_tiles)
+
         return genome
 
     # Create zero or more children from self and other
@@ -169,6 +220,8 @@ class Individual_DE(object):
         # STUDENT For example, too many stairs are unaesthetic.  Let's penalize that
         if len(list(filter(lambda de: de[1] == "6_stairs", self.genome))) > 5:
             penalties -= 2
+        #ideas: penalize floating pipes
+        
         # STUDENT If you go for the FI-2POP extra credit, you can put constraint calculation in here too and cache it in a new entry in __slots__.
         self._fitness = sum(map(lambda m: coefficients[m] * measurements[m],
                                 coefficients)) + penalties
@@ -347,6 +400,54 @@ def generate_successors(population):
     results = []
     # STUDENT Design and implement this
     # Hint: Call generate_children() on some individuals and fill up results.
+    def elitist_selection():
+        pop_limit = len(population)
+        elite_size = max(1, pop_limit // 5) #max ensures that at least 1 elitist is selected, and we truncate so theres no decimal to pick elitists
+        #evaluate fitness of individuals in population
+        #sort them from most fit to least fit from fitness evaluation
+        for individual in population:
+            individual.calculate_fitness()
+
+        sorted_population = sorted(population, key = lambda individual: individual.fitness(), reverse = True)
+        #now only take the top 20%
+        elites = sorted_population[:elite_size]
+        offspring = []
+        while len(offspring) < pop_limit - elite_size:
+                """make sure to change the name of the function once I know the name"""
+                parent1 = tournament_selection(population) #select parent indiv. using selection operator
+                parent2 = tournament_selection(population)
+                #might have to change the call in case implemented differently
+                #parent1, parent2 = tournament_selection()
+                #create offspring by applying crossover to selected parents
+                children = parent1.generate_children(parent2)
+                for child in children:
+                    #apply mutation to the offspring
+                    mutated_child = child.mutate(child.genome)
+                    mutated_child.calculate_fitness() #Evaluate the fitness of the offspring.
+                    offspring.append(mutated_child)
+                    if len(offspring) >= pop_limit - elite_size:
+                        break
+                
+        #combine the elites + offspring to form new population
+        new_population = elites + offspring
+
+        return new_population
+               
+
+    def tournament_selection():
+        # competitors = [] 
+        # for _ in range(k): 
+        #     individual = random.choice(population)
+        #     competitors.append(individual)
+        # best = competitors[0]
+        # for index in competitors[1:]:
+        #     if index._fitness > best._fitness:
+        #         best = index
+        # return best
+        pass
+    
+
+    results = elitist_selection()
     return results
 
 
