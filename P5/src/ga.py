@@ -126,8 +126,10 @@ class Individual_Grid(object):
 
         return genome
 
+    #updated generate children
     # Create zero or more children from self and other
     def generate_children(self, other):
+        print("here")
         new_genome = copy.deepcopy(self.genome)
         # Leaving first and last columns alone...
         # do crossover with other
@@ -137,7 +139,11 @@ class Individual_Grid(object):
             for x in range(left, right):
                 # STUDENT Which one should you take?  Self, or other?  Why?
                 # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
-                pass
+                if random.random() < 0.5:
+                    new_tile = self.genome[y][x]
+                else: 
+                    new_genome[y][x] = other.genome[y][x]
+                # pass
         # do mutation; note we're returning a one-element tuple here
         return (Individual_Grid(new_genome),)
 
@@ -393,7 +399,8 @@ class Individual_DE(object):
         return Individual_DE(g)
 
 
-Individual = Individual_Grid
+# Individual = Individual_Grid
+Individual = Individual_DE
 
 
 def generate_successors(population):
@@ -414,8 +421,11 @@ def generate_successors(population):
         offspring = []
         while len(offspring) < pop_limit - elite_size:
                 """make sure to change the name of the function once I know the name"""
-                parent1 = tournament_selection(population) #select parent indiv. using selection operator
-                parent2 = tournament_selection(population)
+                #parent1 = tournament_selection(population) #select parent indiv. using selection operator
+                #parent2 = tournament_selection(population)
+                parent1 = tournament_selection()
+                parent2 = tournament_selection()
+
                 #might have to change the call in case implemented differently
                 #parent1, parent2 = tournament_selection()
                 #create offspring by applying crossover to selected parents
@@ -423,6 +433,7 @@ def generate_successors(population):
                 for child in children:
                     #apply mutation to the offspring
                     mutated_child = child.mutate(child.genome)
+                    print("type of mutated_child:", type(mutated_child))
                     mutated_child.calculate_fitness() #Evaluate the fitness of the offspring.
                     offspring.append(mutated_child)
                     if len(offspring) >= pop_limit - elite_size:
@@ -435,16 +446,17 @@ def generate_successors(population):
                
 
     def tournament_selection():
-        # competitors = [] 
-        # for _ in range(k): 
-        #     individual = random.choice(population)
-        #     competitors.append(individual)
-        # best = competitors[0]
-        # for index in competitors[1:]:
-        #     if index._fitness > best._fitness:
-        #         best = index
-        # return best
-        pass
+        competitors = random.sample(population, 3)
+        for individual in competitors:
+            individual.calculate_fitness()
+
+        #
+        best = competitors[0]
+        for c in competitors[1:]:
+            if c.fitness() > best.fitness():
+                best = c
+        return best
+        #pass
     
 
     results = elitist_selection()
