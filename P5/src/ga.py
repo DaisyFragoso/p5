@@ -128,7 +128,9 @@ class Individual_Grid(object):
 
     # Create zero or more children from self and other
     def generate_children(self, other):
-        new_genome = copy.deepcopy(self.genome)
+        # new_genome = copy.deepcopy(self.genome)
+        child1_genome = copy.deepcopy(self.genome)
+        child2_genome = copy.deepcopy(other.genome)
         # Leaving first and last columns alone...
         # do crossover with other
         left = 1
@@ -137,9 +139,19 @@ class Individual_Grid(object):
             for x in range(left, right):
                 # STUDENT Which one should you take?  Self, or other?  Why?
                 # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
+                if random.random() < 0.5:
+                    child1_genome[y][x] = self.genome[y][x]
+                    child2_genome[y][x] = other.genome[y][x]
+                else: 
+                    child1_genome[y][x] = other.genome[y][x]
+                    child2_genome[y][x] = self.genome[y][x]
+                # pass
                 pass
         # do mutation; note we're returning a one-element tuple here
-        return (Individual_Grid(new_genome),)
+        # return (Individual_Grid(new_genome),)
+        child1_genome = self.mutate(child1_genome)
+        child2_genome = self.mutate(child2_genome)
+        return (Individual_Grid(child1_genome),Individual_Grid(child2_genome))
 
     # Turn the genome into a level string (easy for this genome)
     def to_level(self):
@@ -393,13 +405,8 @@ class Individual_DE(object):
         return Individual_DE(g)
 
 
-<<<<<<< Updated upstream
 Individual = Individual_Grid
-=======
-#Individual = Individual_Grid
-Individual = Individual_DE
->>>>>>> Stashed changes
-
+# Individual = Individual_DE
 
 def generate_successors(population):
     results = []
@@ -419,8 +426,8 @@ def generate_successors(population):
         offspring = []
         while len(offspring) < pop_limit - elite_size:
                 """make sure to change the name of the function once I know the name"""
-                parent1 = tournament_selection(population) #select parent indiv. using selection operator
-                parent2 = tournament_selection(population)
+                parent1 = tournament_selection() #select parent indiv. using selection operator
+                parent2 = tournament_selection()
                 #might have to change the call in case implemented differently
                 #parent1, parent2 = tournament_selection()
                 #create offspring by applying crossover to selected parents
@@ -440,16 +447,17 @@ def generate_successors(population):
                
 
     def tournament_selection():
-        # competitors = [] 
-        # for _ in range(k): 
-        #     individual = random.choice(population)
-        #     competitors.append(individual)
-        # best = competitors[0]
-        # for index in competitors[1:]:
-        #     if index._fitness > best._fitness:
-        #         best = index
-        # return best
-        pass
+        competitors = random.sample(population, 3)
+        for individual in competitors:
+            individual.calculate_fitness()
+
+        #
+        best = competitors[0]
+        for c in competitors[1:]:
+            if c.fitness() > best.fitness():
+                best = c
+        return best
+        #pass
     
 
     results = elitist_selection()
