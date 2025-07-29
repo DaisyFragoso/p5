@@ -1,3 +1,7 @@
+""" 
+    Names: Kailey Herrman & Daisy Fragoso 
+    Assignment P5 
+"""""
 import copy
 import heapq
 import metrics
@@ -213,12 +217,12 @@ class Individual_Grid(object):
     def empty_individual(cls):
         g = [["-" for col in range(width)] for row in range(height)]
         g[15][:] = ["X"] * width
-        g[14][0] = "m"
-        g[7][-1] = "v"
+        g[14][1] = "m"
+        g[7][-2] = "v"
         for col in range(8, 14):
-            g[col][-1] = "f"
+            g[col][-2] = "f"
         for col in range(14, 16):
-            g[col][-1] = "X"
+            g[col][-2] = "X"
         return cls(g)
 
     @classmethod
@@ -227,10 +231,10 @@ class Individual_Grid(object):
         # STUDENT also consider weighting the different tile types so it's not uniformly random
         g = [random.choices(options, k=width) for row in range(height)]
         g[15][:] = ["X"] * width
-        g[14][0] = "m"
-        g[7][-1] = "v"
-        g[8:14][-1] = ["f"] * 6
-        g[14:16][-1] = ["X", "X"]
+        g[14][1] = "m"
+        g[7][-2] = "v"
+        g[8:14][-2] = ["f"] * 6
+        g[14:16][-2] = ["X", "X"]
         return cls(g)
 
 
@@ -310,6 +314,20 @@ class Individual_DE(object):
         if self._fitness is None:
             self.calculate_fitness()
         return self._fitness
+    
+    def is_valid_helper(new_de, genome):
+        #to prevent two powerups close to each other
+        if new_de[1] == "5_qblock" and new_de[3]:
+            for de in genome:
+                if de[1] == "5_qblock" and de[3] and abs(de[0] - new_de[0]) <= 2:
+                    return False
+        
+        # to prevent blocks next to stairs
+        if new_de[1] == "4_block":
+            for de in genome:
+                if de[1] == "6_stairs" and abs(de[0] - new_de[0]) <= 1:
+                    return False
+        return True
 
     def mutate(self, new_genome):
         # STUDENT How does this work?  Explain it in your writeup.
@@ -387,8 +405,12 @@ class Individual_DE(object):
                 new_de = (x, de_type, w, y, madeof)
             elif de_type == "2_enemy":
                 pass
-            new_genome.pop(to_change)
-            heapq.heappush(new_genome, new_de)
+
+            if is_valid_helper(new_de, new_genome):
+                new_genome.pop(to_change)
+                heapq.heappush(new_genome, new_de)
+            # new_genome.pop(to_change)
+            # heapq.heappush(new_genome, new_de)
         return new_genome
 
     def generate_children(self, other):
@@ -473,7 +495,7 @@ class Individual_DE(object):
 
 
 Individual = Individual_Grid
-# Individual = Individual_DE
+#Individual = Individual_DE
 
 
 def generate_successors(population):
